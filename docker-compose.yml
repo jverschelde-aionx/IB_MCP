@@ -11,10 +11,14 @@ services:
       - .env
     environment:
       - XX:XX
-      # - GATEWAY_INTERNAL_BASE_URL=${GATEWAY_INTERNAL_BASE_URL}
-      # - GATEWAY_PORT=${GATEWAY_PORT}
-      # - GATEWAY_ENDPOINT=${GATEWAY_ENDPOINT}
-      # - GATEWAY_TEST_ENDPOINT=${GATEWAY_TEST_ENDPOINT}
+      - GATEWAY_INTERNAL_BASE_URL=${GATEWAY_INTERNAL_BASE_URL}
+      - GATEWAY_PORT=${GATEWAY_PORT:-5055}
+      - GATEWAY_ENDPOINT=${GATEWAY_ENDPOINT:-/v1/api}
+      - GATEWAY_TEST_ENDPOINT=${GATEWAY_TEST_ENDPOINT:-/v1/api/iserver/account/orders}
+      - TICKLE_INTERVAL=${TICKLE_INTERVAL:-60}
+      - TICKLE_BASE_URL=${TICKLE_BASE_URL:-https://host.docker.internal:5055/v1/api}
+      - TICKLE_ENDPOINT=${TICKLE_ENDPOINT:-/tickle}
+      - MCP_SERVER_BASE_URL=${MCP_SERVER_BASE_URL:-https://localhost}
     networks:
       - mcp_net
     volumes:
@@ -39,15 +43,26 @@ services:
     env_file:
       - .env
     environment:
+    
       - ROUTERS_PATH=/app/mcp_server/routers
-      # GATEWAY_BASE_URL: ${GATEWAY_INTERNAL_BASE_URL}
-      # GATEWAY_PORT: ${GATEWAY_PORT}
-      # GATEWAY_ENDPOINT: ${GATEWAY_ENDPOINT}
-      # MCP_SERVER_HOST: ${MCP_SERVER_HOST}
-      # MCP_SERVER_PORT: ${MCP_SERVER_PORT}
-      # MCP_TRANSPORT_PROTOCOL: ${MCP_TRANSPORT_PROTOCOL}
-      # MCP_SERVER_BASE_URL: ${MCP_SERVER_INTERNAL_BASE_URL}
-      # MCP_SERVER_LOG_LEVEL: ${MCP_SERVER_LOG_LEVEL}
+      - GATEWAY_BASE_URL: ${GATEWAY_INTERNAL_BASE_URL:-https://host.docker.internal}
+      - GATEWAY_PORT: ${GATEWAY_PORT:-5055}
+      - GATEWAY_ENDPOINT: ${GATEWAY_ENDPOINT:-/v1/api}
+      - MCP_SERVER_HOST: ${MCP_SERVER_HOST:-0.0.0.0}
+      - MCP_SERVER_PORT: ${MCP_SERVER_PORT:-5002}
+      - MCP_TRANSPORT_PROTOCOL: ${MCP_TRANSPORT_PROTOCOL:-streamable-http}
+      - MCP_SERVER_BASE_URL: ${MCP_SERVER_INTERNAL_BASE_URL:-https://host.docker.internal}
+      - MCP_SERVER_LOG_LEVEL: ${MCP_SERVER_LOG_LEVEL:-info}
+      - MCP_SERVER_PATH: ${MCP_SERVER_PATH:-/mcp}
+      - MCP_DEV_MODE: ${MCP_DEV_MODE:-true}
+      - INCLUDED_TAGS: ${INCLUDED_TAGS:-Alerts,Contract,Events Contracts,FA Allocation Management,FYIs & Notifications,Market Data,Options Chains,Order Monitoring,Orders,Portfolio,Portfolio Analyst,Scanner,Session,Watchlists,Authorization Token,Account Management Reports}
+      - EXCLUDED_TAGS: ${EXCLUDED_TAGS:-Options Chains, Orders, FA Allocation Management}
+      - OPEN_API_SPEC_URL: ${OPEN_API_SPEC_URL:-https://api.ibkr.com/gw/api/v3/api-docs}
+      - OPENAPI_FILE_PATH: ${OPENAPI_FILE_PATH:-openapi.json}
+      - TICKLE_INTERVAL=${TICKLE_INTERVAL:-60}
+      - TICKLE_BASE_URL=${TICKLE_BASE_URL:-https://host.docker.internal:5055/v1/api}
+      - TICKLE_ENDPOINT=${TICKLE_ENDPOINT:-/tickle}
+      
     depends_on:
       api_gateway:
         condition: service_healthy
