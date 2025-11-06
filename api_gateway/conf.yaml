@@ -23,10 +23,3 @@ cors:
 webApps:
     - name: "demo"
       index: "index.html"
-ips:
-  allow:
-    - 192.*
-    - 131.216.*
-    - 172.*
-  deny:
-    - 212.90.324.10
