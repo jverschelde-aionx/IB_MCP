@@ -22,8 +22,6 @@ services:
       - GATEWAY_INTERNAL_BASE_URL: ${GATEWAY_INTERNAL_BASE_URL:-https://host.docker.internal}
     networks:
       - mcp_net
-    volumes:
-      - ./api_gateway/conf.yaml:/app/api_gateway/root/conf.yaml # Mount the config file
     healthcheck:
       # Dedicated healthcheck script for cleaner logic and better environment variable handling.
       # The script is copied into the container image via the Dockerfile.
