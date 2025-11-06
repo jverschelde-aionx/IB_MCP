@@ -19,6 +19,7 @@ services:
       - TICKLE_BASE_URL: ${TICKLE_BASE_URL:-https://host.docker.internal:5055/v1/api}
       - TICKLE_ENDPOINT: ${TICKLE_ENDPOINT:-/tickle}
       - MCP_SERVER_BASE_URL: ${MCP_SERVER_BASE_URL:-https://localhost}
+      - GATEWAY_INTERNAL_BASE_URL: ${GATEWAY_INTERNAL_BASE_URL:-https://host.docker.internal}
     networks:
       - mcp_net
     volumes:
