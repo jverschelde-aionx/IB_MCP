@@ -23,3 +23,9 @@ cors:
 webApps:
     - name: "demo"
       index: "index.html"
+ips:
+  allow:
+    - 127.0.0.1
+    - 172.*       # docker default bridge ranges
+    - 10.*        # if you use 10.x docker networks
+    - 192.168.*   # optional
