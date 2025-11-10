@@ -20,6 +20,8 @@ services:
       - TICKLE_ENDPOINT: ${TICKLE_ENDPOINT:-/tickle}
       - MCP_SERVER_BASE_URL: ${MCP_SERVER_BASE_URL:-https://localhost}
       - GATEWAY_INTERNAL_BASE_URL: ${GATEWAY_INTERNAL_BASE_URL:-https://host.docker.internal}
+    labels:
+      - traefik.docker.network=j4wsc8sggko8w88kcg4owsog
     networks:
       - mcp_net
     healthcheck:
@@ -61,7 +63,8 @@ services:
       - TICKLE_INTERVAL: ${TICKLE_INTERVAL:-60}
       - TICKLE_BASE_URL: ${TICKLE_BASE_URL:-https://host.docker.internal:5055/v1/api}
       - TICKLE_ENDPOINT: ${TICKLE_ENDPOINT:-/tickle}
-      
+    labels:
+      - traefik.docker.network=j4wsc8sggko8w88kcg4owsog
     depends_on:
       api_gateway:
         condition: service_healthy
