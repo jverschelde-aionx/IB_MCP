@@ -22,6 +22,8 @@ services:
       - GATEWAY_INTERNAL_BASE_URL: ${GATEWAY_INTERNAL_BASE_URL:-https://host.docker.internal}
     labels:
       - traefik.docker.network=j4wsc8sggko8w88kcg4owsog
+      - traefik.http.services.http-0-j4wsc8sggko8w88kcg4owsog-api_gateway.loadbalancer.server.port=${GATEWAY_PORT}
+      - traefik.http.services.https-0-j4wsc8sggko8w88kcg4owsog-api_gateway.loadbalancer.server.port=${GATEWAY_PORT}
     networks:
       - mcp_net
     healthcheck:
