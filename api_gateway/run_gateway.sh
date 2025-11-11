@@ -1,24 +1,12 @@
 #!/bin/sh
-set -e
+set -eu
+# We are already in /app/gateway/clientportal.gw (WORKDIR)
+CONF="${1:-root/conf.yaml}"
 
-CONF="${1:-/app/gateway/clientportal.gw/root/conf.yaml}"
-GW_DIR="/app/gateway/clientportal.gw"
-
-cd "$GW_DIR"
-
-# Start the gateway in the background using the vendor script
-./bin/run.sh "$CONF" &
-GW_PID=$!
-
-# Probe until healthy (your healthcheck script)
-for i in $(seq 1 30); do
-  if /usr/local/bin/healthcheck.sh; then
-    echo "Gateway healthy"
-    break
-  fi
-  echo "API Gateway not ready yet, waiting..."
-  sleep 2
+# Hard fail with a helpful message if the vendor files are missing
+for p in bin/run.sh dist build/lib/runtime; do
+  [ -e "$p" ] || { echo "FATAL: missing $p in $(pwd)"; ls -la; exit 127; }
 done
 
-# Keep container tied to the Java process
-wait $GW_PID
+# Start vendor script (it uses #!/bin/bash)
+exec bash ./bin/run.sh "$CONF"
