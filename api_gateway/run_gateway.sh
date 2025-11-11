@@ -1,26 +1,24 @@
 #!/bin/sh
 set -e
 
-CONF="${1:-/app/gateway/root/conf.yaml}"
-GW_DIR="/app/gateway"
+CONF="${1:-/app/gateway/clientportal.gw/root/conf.yaml}"
+GW_DIR="/app/gateway/clientportal.gw"
 
-if [ ! -x "$GW_DIR/bin/run.sh" ]; then
-  echo "FATAL: $GW_DIR/bin/run.sh not found/executable" >&2
-  ls -la "$GW_DIR" || true
-  exit 1
-fi
+cd "$GW_DIR"
 
-# Start the gateway in the background
-"$GW_DIR/bin/run.sh" "$CONF" &
+# Start the gateway in the background using the vendor script
+./bin/run.sh "$CONF" &
 GW_PID=$!
 
-# Probe until healthy
+# Probe until healthy (your healthcheck script)
 for i in $(seq 1 30); do
   if /usr/local/bin/healthcheck.sh; then
-    echo "Gateway healthy"; break
+    echo "Gateway healthy"
+    break
   fi
   echo "API Gateway not ready yet, waiting..."
   sleep 2
 done
 
+# Keep container tied to the Java process
 wait $GW_PID
