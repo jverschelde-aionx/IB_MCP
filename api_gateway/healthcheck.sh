@@ -1,39 +1,50 @@
 #!/bin/sh
-# Always-verbose healthcheck for IBKR gateway
-set -eu
+# Always-verbose healthcheck using only /bin/sh and curl.
+# Tries HTTP then HTTPS (with -k) on 127.0.0.1:<PORT> for the chosen endpoint.
 
-SCHEME="${GATEWAY_SCHEME:-http}"        # set to https if conf.yaml keeps TLS
 PORT="${GATEWAY_PORT:-5055}"
-PATH="${GATEWAY_TEST_ENDPOINT:-/v1/api/servertime}"
-URL="${SCHEME}://127.0.0.1:${PORT}${PATH}"
-[ "$SCHEME" = "https" ] && K="-k" || K=""
+PATH_SUFFIX="${GATEWAY_TEST_ENDPOINT:-/v1/api/servertime}"  # simple, no-login endpoint
+SCHEMES="${GATEWAY_SCHEME:-http https}"                     # try both unless explicitly set
 
-echo "[$(date -Is)] Checking $URL"
-echo "Env: SCHEME=$SCHEME PORT=$PORT PATH=$PATH"
+echo "=== GW healthcheck @ $(date 2>/dev/null || echo unknown-date) ==="
+echo "PORT=$PORT  ENDPOINT=$PATH_SUFFIX  SCHEMES='$SCHEMES'"
 
-# show listening ports
-echo "--- Listening ports ---"
-(ss -lntp 2>/dev/null || netstat -plnt 2>/dev/null) | grep -E ":$PORT\s" || echo "No listener visible on :$PORT"
+ok=1
+for SCHEME in $SCHEMES; do
+  [ -z "$SCHEME" ] && continue
+  URL="${SCHEME}://127.0.0.1:${PORT}${PATH_SUFFIX}"
+  echo ""
+  echo ">>> Probing: $URL"
+  CURL_OPTS="-sS -m 5"
+  [ "$SCHEME" = "https" ] && CURL_OPTS="$CURL_OPTS -k"
 
-# make request
-echo "--- Curl request ---"
-STATUS=$(curl $K -sS -m 3 -w "%{http_code}" -D - -o /tmp/api.json "$URL" 2>&1 | tee /tmp/healthcheck.curl.log | awk 'END{print $NF}') || true
+  # Save body and stderr separately; capture HTTP code
+  rm -f /tmp/hc_body /tmp/hc_err
+  STATUS="$(curl $CURL_OPTS -w '%{http_code}' -o /tmp/hc_body "$URL" 2>/tmp/hc_err || echo '')"
 
-echo "--- HTTP status: ${STATUS:-curl_failed} ---"
-echo "--- Body (first 300 bytes) ---"
-head -c 300 /tmp/api.json 2>/dev/null && echo
-echo "--- End body ---"
+  echo "HTTP status: ${STATUS:-curl_failed}"
+  if [ -s /tmp/hc_err ]; then
+    echo "--- curl stderr ---"
+    cat /tmp/hc_err
+  fi
+  if [ -s /tmp/hc_body ]; then
+    echo "--- response body (printing all) ---"
+    cat /tmp/hc_body
+    echo
+  else
+    echo "(no response body)"
+  fi
 
-case "$STATUS" in
-  200|401|403)
-    echo "✅ Gateway reachable (HTTP $STATUS)"
-    exit 0
-    ;;
-  *)
-    echo "❌ Gateway not ready (HTTP ${STATUS:-curl_failed})"
-    echo "--- Full curl output ---"
-    cat /tmp/healthcheck.curl.log 2>/dev/null || true
-    echo "--- End curl output ---"
-    exit 1
-    ;;
-esac
+  case "$STATUS" in
+    200|401|403)
+      echo "✅ Reachable via $SCHEME"
+      ok=0
+      break
+      ;;
+    *)
+      echo "❌ Not reachable via $SCHEME"
+      ;;
+  esac
+done
+
+exit $ok
