@@ -1,18 +1,13 @@
 #!/bin/sh
-BASE="${GATEWAY_INTERNAL_BASE_URL:-http://localhost}"
+SCHEME="${GATEWAY_SCHEME:-http}"     # set to https if conf.yaml keeps TLS
 PORT="${GATEWAY_PORT:-5055}"
-# Use a publicly reachable path; "/" will render login/redirect
-PATH_TO_CHECK="${GATEWAY_TEST_ENDPOINT:-/}"
+PATH="${GATEWAY_TEST_ENDPOINT:-/v1/api/servertime}"
+URL="${SCHEME}://127.0.0.1:${PORT}${PATH}"
 
-STATUS=$(curl -sk -o /dev/null -w "%{http_code}" "${BASE}:${PORT}${PATH_TO_CHECK}")
+[ "$SCHEME" = "https" ] && K="-k" || K=""
+STATUS=$(curl -sS $K -o /tmp/api.json -w "%{http_code}" "$URL" || true)
 
 case "$STATUS" in
-  200|301|302|401|403)
-    echo "Gateway reachable (HTTP $STATUS)."
-    exit 0
-    ;;
-  *)
-    echo "Gateway not ready (HTTP $STATUS)."
-    exit 1
-    ;;
+  200|401|403) exit 0 ;;
+  *) echo "Gateway not ready (HTTP ${STATUS:-curl_failed})"; exit 1 ;;
 esac
