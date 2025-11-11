@@ -1,18 +1,26 @@
-#!/bin/bash
+#!/bin/sh
+set -e
 
-# Start the API Gateway in the background
-cd /app/api_gateway
-sh bin/run.sh root/conf.yaml &
+CONF="${1:-/app/gateway/root/conf.yaml}"
+GW_DIR="/app/gateway"
 
-# Wait for the API Gateway to become healthy before starting the tickler
-echo "Waiting for API Gateway to become healthy..."
-while ! /usr/local/bin/healthcheck.sh > /dev/null 2>&1; do
+if [ ! -x "$GW_DIR/bin/run.sh" ]; then
+  echo "FATAL: $GW_DIR/bin/run.sh not found/executable" >&2
+  ls -la "$GW_DIR" || true
+  exit 1
+fi
+
+# Start the gateway in the background
+"$GW_DIR/bin/run.sh" "$CONF" &
+GW_PID=$!
+
+# Probe until healthy
+for i in $(seq 1 30); do
+  if /usr/local/bin/healthcheck.sh; then
+    echo "Gateway healthy"; break
+  fi
   echo "API Gateway not ready yet, waiting..."
   sleep 2
 done
 
-echo "API Gateway is healthy, starting tickler..."
-/app/tickler.sh &
-
-# Wait for the API Gateway process to keep container alive
-wait
+wait $GW_PID
