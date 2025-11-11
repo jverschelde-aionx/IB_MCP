@@ -72,9 +72,6 @@ services:
         condition: service_healthy
     networks:
       - mcp_net
-    volumes:
-      # Mount local directory for development
-      - ./mcp_server:/app/mcp_server
     stdin_open: true
     tty: true
     restart: unless-stopped
