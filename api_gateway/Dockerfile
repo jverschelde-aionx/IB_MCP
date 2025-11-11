@@ -1,28 +1,40 @@
 FROM eclipse-temurin:21
 
-# Tools the vendor script needs (bash) + unzip/curl
+# bash is required by vendor run.sh; curl/unzip for download
 RUN apt-get update && apt-get install -y bash curl unzip ca-certificates && rm -rf /var/lib/apt/lists/*
 
-# Download and unpack to /app/gateway/clientportal.gw
+# Work under /app/gateway
 WORKDIR /app/gateway
-RUN curl -fSL -o clientportal.gw.zip https://download2.interactivebrokers.com/portal/clientportal.gw.zip \
- && unzip -q clientportal.gw.zip \
- && rm clientportal.gw.zip \
- # Sanity checks: fail the build if vendor layout isn't present
- && test -x clientportal.gw/bin/run.sh \
- && test -d clientportal.gw/dist \
- && test -d clientportal.gw/build/lib/runtime
 
-# Put your config where the gateway expects it
-WORKDIR /app/gateway/clientportal.gw
+# Download, unzip to a staging dir, then copy the real distro root
+RUN set -eux; \
+    curl -fSL -o /tmp/gw.zip "https://download2.interactivebrokers.com/portal/clientportal.gw.zip"; \
+    mkdir -p /app/gateway/_unz; \
+    unzip -q /tmp/gw.zip -d /app/gateway/_unz; \
+    rm -f /tmp/gw.zip; \
+    # find the directory that actually contains bin/run.sh
+    GW_ROOT=""; \
+    for d in /app/gateway/_unz /app/gateway/_unz/*; do \
+      if [ -x "$d/bin/run.sh" ]; then GW_ROOT="$d"; break; fi; \
+    done; \
+    if [ -z "$GW_ROOT" ]; then \
+      echo "Could not locate gateway root after unzip (bin/run.sh missing)"; \
+      find /app/gateway/_unz -maxdepth 3 -type d -print; \
+      exit 1; \
+    fi; \
+    # copy the distribution contents into /app/gateway
+    cp -a "$GW_ROOT/." /app/gateway/; \
+    rm -rf /app/gateway/_unz; \
+    # minimal sanity: vendor launcher exists now
+    test -x /app/gateway/bin/run.sh
+
+# Put your config where the gateway expects it (next to bin/dist/build/root)
 COPY conf.yaml root/conf.yaml
 
-# Wrapper entrypoint (starts vendor script) + healthcheck
-COPY run_gateway.sh /usr/local/bin/run_gateway
+# Optional: your healthcheck script
 COPY healthcheck.sh /usr/local/bin/healthcheck.sh
-RUN chmod +x /usr/local/bin/run_gateway /usr/local/bin/healthcheck.sh
+RUN chmod +x /usr/local/bin/healthcheck.sh
 
 EXPOSE 5055
-
-# Run from the vendor distribution root so relative paths work
-ENTRYPOINT ["run_gateway", "root/conf.yaml"]
+# Run vendor launcher via bash from the distribution root
+ENTRYPOINT ["bash", "bin/run.sh", "root/conf.yaml"]
