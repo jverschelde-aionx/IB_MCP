@@ -31,10 +31,17 @@ RUN set -eux; \
 # Put your config where the gateway expects it (next to bin/dist/build/root)
 COPY conf.yaml root/conf.yaml
 
-# Optional: your healthcheck script
+# Copy and setup scripts
 COPY healthcheck.sh /usr/local/bin/healthcheck.sh
 RUN chmod +x /usr/local/bin/healthcheck.sh
 
+COPY tickler.sh /app/gateway/tickler.sh
+RUN chmod +x /app/gateway/tickler.sh
+
+COPY run_gateway.sh /app/gateway/run_gateway.sh
+RUN chmod +x /app/gateway/run_gateway.sh
+
 EXPOSE 5055
-# Run vendor launcher via bash from the distribution root
-ENTRYPOINT ["bash", "bin/run.sh", "root/conf.yaml"]
+
+# Use run_gateway.sh to start both gateway and tickler
+ENTRYPOINT ["/app/gateway/run_gateway.sh", "root/conf.yaml"]
